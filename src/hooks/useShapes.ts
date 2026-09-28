@@ -80,9 +80,15 @@ export function useShapes(viewport: Viewport, activeTool: Tool) {
   toolRef.current = activeTool;
   const selectedIdsRef = useRef(selectedIds);
   selectedIdsRef.current = selectedIds;
+  const shapesRef = useRef(shapes);
+  shapesRef.current = shapes;
   const dragRef = useRef<{ start: Point; current: Point; type: ShapeType } | null>(null);
-  /** Данные для перетаскивания фигуры: фиксированная стартовая позиция + точка мыши. */
-  const moveRef = useRef<{ id: string; origin: Point; start: Point } | null>(null);
+  /**
+   * Данные для перетаскивания: стартовая позиция мыши + стартовые позиции
+   * всех перемещаемых фигур (id -> точка). Позиции, а не смещения, — чтобы
+   * фигура не «накапливала» ошибку округления за время жеста.
+   */
+  const moveRef = useRef<{ origins: Map<string, Point>; start: Point } | null>(null);
 
   const addShape = useCallback((input: CreateShapeInput): Shape => {
     const shape: Shape = {
@@ -179,28 +185,48 @@ export function useShapes(viewport: Viewport, activeTool: Tool) {
   const onShapePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>, shape: Shape) => {
       if (toolRef.current !== 'select') return;
-      const isAlreadySelected = selectedIdsRef.current.includes(shape.id);
+      // Читаем выделение до select(): ref обновится только на следующем
+      // рендере, и после клика он ещё хранит прежнее значение.
+      const selection = selectedIdsRef.current;
+      const isAlreadySelected = selection.includes(shape.id);
       select(shape.id, e.shiftKey);
       // Shift+клик по уже выделенной фигуре снимает выделение — не двигаем.
       if (e.shiftKey && isAlreadySelected) return;
+      // Двигаем всю группу — то выделение, которое будет после клика:
+      // обычный клик оставляет только эту фигуру (прежнее поведение),
+      // Shift+клик добавляет её к уже выделенным.
+      const movedIds = e.shiftKey ? [...selection, shape.id] : [shape.id];
+      const origins = new Map<string, Point>();
+      for (const id of movedIds) {
+        const s = shapesRef.current.find((item) => item.id === id);
+        if (s) origins.set(id, { x: s.x, y: s.y });
+      }
       const start = screenToWorld({ x: e.clientX, y: e.clientY }, viewportRef.current);
-      moveRef.current = { id: shape.id, origin: { x: shape.x, y: shape.y }, start };
+      moveRef.current = { origins, start };
       // Захват указателя: move/up доходят даже если мышь выехала за границы фигуры.
       e.currentTarget.setPointerCapture(e.pointerId);
     },
     [select],
   );
 
-  /** Тянем фигуру: сдвиг мыши в мировых координатах прибавляем к стартовой позиции. */
+  /** Тянем фигуры: сдвиг мыши в мировых координатах прибавляем к стартовым позициям. */
   const onShapePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       const move = moveRef.current;
       if (!move) return;
       const current = screenToWorld({ x: e.clientX, y: e.clientY }, viewportRef.current);
-      const next = translatePoint(move.origin, current.x - move.start.x, current.y - move.start.y);
-      updateShape(move.id, { x: next.x, y: next.y });
+      const dx = current.x - move.start.x;
+      const dy = current.y - move.start.y;
+      setShapes((prev) =>
+        prev.map((s) => {
+          const origin = move.origins.get(s.id);
+          if (!origin) return s;
+          const next = translatePoint(origin, dx, dy);
+          return { ...s, x: next.x, y: next.y };
+        }),
+      );
     },
-    [updateShape],
+    [],
   );
 
   /** Отпустили фигуру — перетаскивание закончено. */
