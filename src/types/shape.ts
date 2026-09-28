@@ -30,6 +30,8 @@ export interface Rect {
 /**
  * Фигура на холсте. x/y — левый верхний угол в мировых координатах,
  * width/height — размеры в мировых единицах (не в пикселях экрана).
+ * Все геометрические поля, включая strokeWidth, живут в мировых единицах
+ * и масштабируются зумом при рендере.
  */
 export interface Shape {
   id: string;
@@ -41,6 +43,7 @@ export interface Shape {
   height: number;
   fill: string;
   stroke: string;
+  /** Толщина обводки в мировых единицах: 0 — обводки нет. */
   strokeWidth: number;
   opacity: number;
   rotation: number;

@@ -73,13 +73,14 @@ export function Shape({
         transform: `rotate(${shape.rotation}deg)`,
       }}
     >
-      {/* Сама фигура */}
+      {/* Сама фигура. Обводка — мировая единица, поэтому масштабируется зумом
+          вместе с размерами фигуры, а не остаётся в экранных пикселях. */}
       <div
         className="h-full w-full"
         style={{
           borderRadius: isEllipse ? '9999px' : 0,
           backgroundColor: shape.fill,
-          border: `${shape.strokeWidth}px solid ${shape.stroke}`,
+          border: `${shape.strokeWidth * viewport.zoom}px solid ${shape.stroke}`,
           opacity: shape.opacity,
         }}
       />
