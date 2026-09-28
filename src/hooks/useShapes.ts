@@ -43,7 +43,8 @@ const DRAFT_ID = 'draft';
 /** Минимальный размер в экранных px: меньший «клик» считается промахом. */
 const MIN_DRAW_SIZE_PX = 3;
 
-const isDrawTool = (tool: Tool): boolean => tool === 'rect' || tool === 'ellipse';
+/** Тип-гард: инструмент рисования одновременно и есть тип создаваемой фигуры. */
+const isDrawTool = (tool: Tool): tool is ShapeType => tool === 'rect' || tool === 'ellipse';
 
 const makeDraft = (type: ShapeType, origin: Point): Shape => ({
   id: DRAFT_ID,
@@ -131,12 +132,11 @@ export function useShapes(viewport: Viewport, activeTool: Tool) {
     // Тип фигуры запоминаем здесь: если пользователь переключит инструмент
     // горячей клавишей, не дорисовывая рамку, всё равно получит тот тип,
     // который был активен в момент нажатия, — как показывало превью.
-    const type = tool as ShapeType;
     const start = screenToWorld({ x: e.clientX, y: e.clientY }, viewportRef.current);
-    dragRef.current = { start, current: start, type };
+    dragRef.current = { start, current: start, type: tool };
     // Захват указателя, чтобы move/up доходили даже вне границ холста.
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDraft(makeDraft(type, start));
+    setDraft(makeDraft(tool, start));
   }, []);
 
   /** Тянем рамку: обновляем превью в мировых координатах. */
