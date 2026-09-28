@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { Point, Shape, ShapeType, Tool, Viewport } from '../types/shape';
 import { rectFromPoints, screenToWorld, translatePoint } from '../utils/geometry';
+import { DEFAULT_FILL, DEFAULT_STROKE } from '../constants/theme';
 
 /** Входные данные для создания фигуры (рисуется рамкой мыши). */
 export interface CreateShapeInput {
@@ -52,8 +53,8 @@ const makeDraft = (type: ShapeType, origin: Point): Shape => ({
   y: origin.y,
   width: 0,
   height: 0,
-  fill: '#9747ff',
-  stroke: '#000000',
+  fill: DEFAULT_FILL,
+  stroke: DEFAULT_STROKE,
   strokeWidth: 0,
   opacity: 1,
   rotation: 0,
@@ -91,8 +92,8 @@ export function useShapes(viewport: Viewport, activeTool: Tool) {
       y: input.y,
       width: input.width,
       height: input.height,
-      fill: '#9747ff',
-      stroke: '#000000',
+      fill: DEFAULT_FILL,
+      stroke: DEFAULT_STROKE,
       strokeWidth: 0,
       opacity: 1,
       rotation: 0,

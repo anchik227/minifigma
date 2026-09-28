@@ -1,4 +1,5 @@
 import type { Shape as ShapeModel } from '../types/shape';
+import { ACTIVE_ITEM_CLASS, INACTIVE_ITEM_CLASS } from '../constants/theme';
 
 interface LayersPanelProps {
   shapes: ShapeModel[];
@@ -34,9 +35,7 @@ export function LayersPanel({ shapes, selectedIds, onSelect }: LayersPanelProps)
                 type="button"
                 onClick={() => onSelect(shape.id)}
                 className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm ${
-                  isSelected
-                    ? 'bg-violet-500/20 text-violet-200'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                  isSelected ? ACTIVE_ITEM_CLASS : INACTIVE_ITEM_CLASS
                 }`}
               >
                 <span aria-hidden className="w-4 text-center">

@@ -2,9 +2,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { Shape as ShapeModel, Tool, Viewport } from '../types/shape';
 import type { SelectHandlers } from '../hooks/useShapes';
 import { worldToScreen } from '../utils/geometry';
-
-/** Цвет рамки выделения — фирменный синий Figma. */
-const SELECT_COLOR = '#0d99ff';
+import { SELECT_COLOR } from '../constants/theme';
 
 /** Размер маркера (квадрат) в экранных px — не зависит от зума. */
 const HANDLE_SIZE = 8;

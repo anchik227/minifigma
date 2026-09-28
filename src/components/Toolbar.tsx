@@ -1,4 +1,5 @@
 import { TOOLS } from '../constants/tools';
+import { ACTIVE_ITEM_CLASS, INACTIVE_ITEM_CLASS } from '../constants/theme';
 import type { Tool } from '../types/shape';
 
 interface ToolbarProps {
@@ -25,9 +26,7 @@ export function Toolbar({ activeTool, onToolChange }: ToolbarProps) {
             aria-pressed={isActive}
             onClick={() => onToolChange(tool.id)}
             className={`flex h-9 w-9 items-center justify-center rounded-md text-lg transition-colors ${
-              isActive
-                ? 'bg-violet-500/20 text-violet-300'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              isActive ? ACTIVE_ITEM_CLASS : INACTIVE_ITEM_CLASS
             }`}
           >
             {tool.icon}
