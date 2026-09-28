@@ -78,7 +78,7 @@ export function useShapes(viewport: Viewport, activeTool: Tool) {
   toolRef.current = activeTool;
   const selectedIdsRef = useRef(selectedIds);
   selectedIdsRef.current = selectedIds;
-  const dragRef = useRef<{ start: Point; current: Point } | null>(null);
+  const dragRef = useRef<{ start: Point; current: Point; type: ShapeType } | null>(null);
   /** Данные для перетаскивания фигуры: фиксированная стартовая позиция + точка мыши. */
   const moveRef = useRef<{ id: string; origin: Point; start: Point } | null>(null);
 
@@ -125,12 +125,17 @@ export function useShapes(viewport: Viewport, activeTool: Tool) {
 
   /** Начали тянуть рамку: экранные координаты -> мировые с учётом камеры. */
   const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!isDrawTool(toolRef.current)) return;
+    const tool = toolRef.current;
+    if (!isDrawTool(tool)) return;
+    // Тип фигуры запоминаем здесь: если пользователь переключит инструмент
+    // горячей клавишей, не дорисовывая рамку, всё равно получит тот тип,
+    // который был активен в момент нажатия, — как показывало превью.
+    const type = tool as ShapeType;
     const start = screenToWorld({ x: e.clientX, y: e.clientY }, viewportRef.current);
-    dragRef.current = { start, current: start };
+    dragRef.current = { start, current: start, type };
     // Захват указателя, чтобы move/up доходили даже вне границ холста.
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDraft(makeDraft(toolRef.current as ShapeType, start));
+    setDraft(makeDraft(type, start));
   }, []);
 
   /** Тянем рамку: обновляем превью в мировых координатах. */
@@ -153,7 +158,7 @@ export function useShapes(viewport: Viewport, activeTool: Tool) {
     setDraft(null);
     const minSize = MIN_DRAW_SIZE_PX / viewportRef.current.zoom;
     if (rect.width < minSize || rect.height < minSize) return;
-    const shape = addShape({ type: toolRef.current as ShapeType, ...rect });
+    const shape = addShape({ type: drag.type, ...rect });
     select(shape.id);
   }, [addShape, select]);
 
