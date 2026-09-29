@@ -189,13 +189,19 @@ export function useShapes(viewport: Viewport, activeTool: Tool) {
       // рендере, и после клика он ещё хранит прежнее значение.
       const selection = selectedIdsRef.current;
       const isAlreadySelected = selection.includes(shape.id);
-      select(shape.id, e.shiftKey);
+      // Клик по фигуре из уже выделенной группы не схлопывает группу: иначе
+      // после щелчка осталась бы одна фигура и сдвинуть остальные было бы
+      // нечем. Так же ведёт себя Figma. Схлопываем выделение, только если
+      // оно и так было одиночным.
+      const keepsGroup = isAlreadySelected && selection.length > 1 && !e.shiftKey;
+      if (!keepsGroup) select(shape.id, e.shiftKey);
       // Shift+клик по уже выделенной фигуре снимает выделение — не двигаем.
       if (e.shiftKey && isAlreadySelected) return;
       // Двигаем всю группу — то выделение, которое будет после клика:
-      // обычный клик оставляет только эту фигуру (прежнее поведение),
+      // обычный клик по фигуре из группы оставляет всю группу,
+      // обычный клик по одиночке — только эту фигуру (прежнее поведение),
       // Shift+клик добавляет её к уже выделенным.
-      const movedIds = e.shiftKey ? [...selection, shape.id] : [shape.id];
+      const movedIds = keepsGroup ? selection : e.shiftKey ? [...selection, shape.id] : [shape.id];
       const origins = new Map<string, Point>();
       for (const id of movedIds) {
         const s = shapesRef.current.find((item) => item.id === id);
