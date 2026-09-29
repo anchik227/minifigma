@@ -1,4 +1,9 @@
-@import "tailwindcss";
+/* Tailwind v4 сам ищет классы по всему проекту. Из-за этого чужие .html
+   (например, демо в .agents/skills) попадали в разбор и раздували боевой CSS.
+   Поэтому автопоиск отключён, а источники перечислены явно. */
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./**/*.{ts,tsx}";
 
 html,
 body,
