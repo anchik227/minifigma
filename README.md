@@ -6,7 +6,7 @@
 
 ```bash
 npm install      # установить зависимости
-npm run dev      # dev-сервер (http://localhost:5173)
+npm run dev      # dev-сервер (http://localhost:5173/minifigma/)
 npm run build    # проверка типов + продакшен-сборка
 npm run preview  # предпросмотр собранного проекта
 ```
