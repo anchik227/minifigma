@@ -33,10 +33,12 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Add download page
+      - name: Assemble Pages artifact
         run: |
-          mkdir -p dist/desktop-download
-          cp -r desktop-download/. dist/desktop-download/
+          # приложение уезжает в /app, а страница скачивания становится корнем сайта
+          mkdir -p dist/app
+          find dist -mindepth 1 -maxdepth 1 ! -name app -exec mv {} dist/app/ \;
+          cp -r desktop-download/. dist/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

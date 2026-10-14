@@ -6,7 +6,7 @@
 
 ```bash
 npm install      # установить зависимости
-npm run dev      # dev-сервер (http://localhost:5173/minifigma/)
+npm run dev      # dev-сервер (http://localhost:5173/minifigma/app/)
 npm run build    # проверка типов + продакшен-сборка
 npm run preview  # предпросмотр собранного проекта
 ```
@@ -25,7 +25,9 @@ npm run page          # запустить и открыть в браузере
 `./start-page.sh` в macOS и Linux. Флаги: `--no-open` — не открывать браузер,
 `PORT=8080` — свой порт вместо случайного свободного.
 
-При пуше в `main` папка автоматически публикуется на GitHub Pages рядом с приложением.
+При пуше в `main` страница публикуется на GitHub Pages **корнем сайта**
+(`https://anchik227.github.io/minifigma/`), а само приложение — по пути
+`https://anchik227.github.io/minifigma/app/`.
 
 ## Архитектура
 
