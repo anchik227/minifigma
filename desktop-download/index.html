@@ -1,0 +1,1189 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#020617" />
+    <title>mini-figma — лёгкий редактор фигур без аккаунта и интернета</title>
+    <meta
+      name="description"
+      content="Лёгкий редактор фигур прямо в браузере: холст, фигуры, слои и свойства. Скачайте сборку на 57 КБ — работает без интернета, открывается за секунды. Бесплатно, открытый исходный код."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="mini-figma — лёгкий редактор фигур без аккаунта и интернета" />
+    <meta
+      property="og:description"
+      content="Холст, фигуры, слои и свойства — в браузере, без аккаунта. Скачайте сборку и рисуйте где угодно."
+    />
+    <meta property="og:image" content="preview.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='6' width='20' height='20' rx='4' fill='%239747ff'/%3E%3Crect x='4' y='4' width='24' height='24' rx='2' fill='none' stroke='%230d99ff' stroke-width='1.5'/%3E%3C/svg%3E"
+    />
+    <style>
+      /* ------------------------------------------------------------------
+         Система (объявлена до пикселей):
+
+         • Палитра       — взята 1:1 из самого приложения (src/index.css,
+                            src/constants/theme.ts): бумага #020617 (slate-950),
+                            панели #0f172a, границы #1e293b, акцент #9747ff
+                            (заливка по умолчанию), выделение #0d99ff.
+
+         • Типографика   — Inter (как в приложении) + моно для кода и цифр.
+                            Одна шкала на весь документ, крупные заголовки
+                            с плотным трекингом.
+
+         • Ритм           — чередование тёмных блоков и одной подсвеченной
+                            полосы «Преимущества» с фиолетовым свечением.
+
+         • Секция         — надзаголовок + крупный H2 + лид, всегда сверху;
+                            затем содержимое (картинка / карточки / шаги / FAQ).
+
+         • Снимок экрана  — настоящий кадр приложения (preview.png),
+                            снят headless-браузером, не нарисован.
+         ------------------------------------------------------------------ */
+      :root {
+        --bg: #020617;
+        --bg-band: #060b18;
+        --panel: #0f172a;
+        --line: #1e293b;
+        --fg: #e2e8f0;
+        --fg-strong: #f8fafc;
+        --muted: #94a3b8;
+        --dim: #64748b;
+        --violet: #9747ff;
+        --violet-soft: #c4b5fd;
+        --blue: #0d99ff;
+
+        --r-md: 14px;
+        --r-lg: 20px;
+        --r-pill: 9999px;
+
+        --max: 80rem;
+        --pad: 2.5rem;
+        --section-y: clamp(4rem, 8vw, 7rem);
+
+        --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+          "Liberation Mono", monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font);
+        font-size: 1rem;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      img {
+        max-width: 100%;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      code,
+      kbd,
+      pre {
+        font-family: var(--mono);
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 3px;
+        border-radius: 4px;
+      }
+
+      .skip {
+        position: absolute;
+        left: 1rem;
+        top: -3rem;
+        z-index: 100;
+        background: var(--violet);
+        color: #fff;
+        padding: 0.6rem 1rem;
+        border-radius: 9999px;
+        text-decoration: none;
+        transition: top 0.18s ease;
+      }
+      .skip:focus {
+        top: 1rem;
+      }
+
+      .container {
+        width: 100%;
+        max-width: var(--max);
+        margin-inline: auto;
+        padding-inline: var(--pad);
+      }
+
+      /* --- текстовые роли --------------------------------------------- */
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--violet-soft);
+        margin: 0 0 1.1rem;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 9999px;
+        background: var(--violet);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-weight: 650;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+        text-wrap: balance;
+        color: var(--fg-strong);
+      }
+
+      h1 {
+        font-size: clamp(2.5rem, 6vw, 5rem);
+      }
+      h2 {
+        font-size: clamp(1.85rem, 3.6vw, 3.25rem);
+      }
+      h3 {
+        font-size: clamp(1.15rem, 1.5vw, 1.4rem);
+        letter-spacing: -0.02em;
+      }
+
+      .lead {
+        font-size: clamp(1rem, 1.4vw, 1.25rem);
+        line-height: 1.5;
+        color: var(--muted);
+        max-width: 46ch;
+        text-wrap: pretty;
+        margin: 1.25rem 0 0;
+      }
+
+      p {
+        text-wrap: pretty;
+      }
+
+      .mono {
+        font-family: var(--mono);
+        font-size: 0.9em;
+        color: var(--violet-soft);
+        background: rgba(151, 71, 255, 0.1);
+        border: 1px solid rgba(151, 71, 255, 0.22);
+        padding: 0.1em 0.4em;
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+
+      /* --- кнопки ------------------------------------------------------ */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        border: 1px solid transparent;
+        border-radius: var(--r-pill);
+        padding: 0.85rem 1.5rem;
+        font: inherit;
+        font-weight: 600;
+        line-height: 1;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.18s ease, border-color 0.18s ease,
+          color 0.18s ease, transform 0.18s ease;
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn svg {
+        width: 1.15em;
+        height: 1.15em;
+        flex: none;
+      }
+      .btn--primary {
+        background: var(--violet);
+        color: #fff;
+        box-shadow: 0 10px 30px -12px rgba(151, 71, 255, 0.8);
+      }
+      .btn--primary:hover {
+        background: #8330e6;
+      }
+      .btn--outline {
+        background: transparent;
+        color: var(--fg);
+        border-color: var(--line);
+      }
+      .btn--outline:hover {
+        background: var(--panel);
+        border-color: #334155;
+      }
+      .btn--lg {
+        padding: 1.05rem 1.9rem;
+        font-size: 1.05rem;
+      }
+
+      /* --- шапка ------------------------------------------------------- */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: rgba(2, 6, 23, 0.82);
+        backdrop-filter: saturate(160%) blur(14px);
+        border-bottom: 1px solid var(--line);
+      }
+      .site-header__inner {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        min-height: 4.25rem;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        text-decoration: none;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        font-size: 1.0625rem;
+        color: var(--fg-strong);
+      }
+      .brand svg {
+        height: 1.6rem;
+        width: auto;
+      }
+      .brand__accent {
+        color: var(--violet-soft);
+      }
+      .nav {
+        display: flex;
+        gap: 1.75rem;
+        margin-left: 1rem;
+      }
+      .nav a {
+        text-decoration: none;
+        color: var(--muted);
+        font-size: 0.9375rem;
+        transition: color 0.15s ease;
+      }
+      .nav a:hover {
+        color: var(--fg-strong);
+      }
+      .site-header .btn {
+        margin-left: auto;
+      }
+
+      /* --- герой ------------------------------------------------------- */
+      .hero {
+        padding-top: clamp(3rem, 6vw, 5.5rem);
+        padding-bottom: var(--section-y);
+        position: relative;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: -10% 0 30% 0;
+        background: radial-gradient(
+          60% 60% at 70% 0%,
+          rgba(151, 71, 255, 0.16),
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: -1;
+      }
+      .hero__top {
+        display: grid;
+        gap: 2rem;
+        align-items: end;
+      }
+      @media (min-width: 900px) {
+        .hero__top {
+          grid-template-columns: 1.1fr 0.9fr;
+        }
+      }
+      .hero__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 2rem;
+      }
+      .hero__note {
+        margin: 1.1rem 0 0;
+        font-size: 0.875rem;
+        color: var(--dim);
+        max-width: 62ch;
+      }
+      .hero__note a {
+        color: var(--muted);
+      }
+      .hero__figure {
+        margin: 3.25rem 0 0;
+      }
+
+      /* --- настоящий снимок приложения -------------------------------- */
+      .shot {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        overflow: hidden;
+        background: var(--panel);
+        box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
+      }
+      .shot img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        margin-top: 0.9rem;
+        font-size: 0.8125rem;
+        color: var(--dim);
+        text-align: center;
+      }
+      .shot__bar {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        height: 2.25rem;
+        padding-inline: 1rem;
+        background: var(--bg);
+        border-bottom: 1px solid var(--line);
+      }
+      .dot {
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 9999px;
+        background: var(--c, #334155);
+      }
+      .shot__title {
+        margin-left: 0.6rem;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--dim);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .pin {
+        position: absolute;
+        z-index: 3;
+        display: grid;
+        place-items: center;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 9999px;
+        background: var(--violet);
+        color: #fff;
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        font-weight: 700;
+        border: 3px solid var(--bg);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        transform: translate(-50%, -50%);
+      }
+
+      /* --- общие секции ------------------------------------------------ */
+      .section {
+        padding-block: var(--section-y);
+        border-top: 1px solid var(--line);
+      }
+      .section__head {
+        max-width: 52rem;
+        margin-bottom: clamp(2rem, 4vw, 3.25rem);
+      }
+      .section__head .lead {
+        max-width: 50ch;
+      }
+      .band {
+        background: var(--bg-band);
+        position: relative;
+        overflow: hidden;
+      }
+      .band::before {
+        content: "";
+        position: absolute;
+        inset: -30% -10% auto -10%;
+        height: 60%;
+        background: radial-gradient(
+          50% 100% at 50% 0%,
+          rgba(151, 71, 255, 0.14),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .band .container {
+        position: relative;
+      }
+
+      /* --- «что внутри» ------------------------------------------------ */
+      .inside {
+        display: grid;
+        gap: 2.5rem;
+      }
+      @media (min-width: 1000px) {
+        .inside {
+          grid-template-columns: 1.35fr 0.65fr;
+          align-items: start;
+        }
+      }
+      .legend {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .legend li {
+        display: grid;
+        grid-template-columns: 1.6rem 1fr;
+        gap: 0.85rem;
+        padding: 0.9rem 0;
+        border-top: 1px solid var(--line);
+      }
+      .legend li:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+      .legend b {
+        display: grid;
+        place-items: center;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 9999px;
+        background: rgba(151, 71, 255, 0.16);
+        color: var(--violet-soft);
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        font-weight: 700;
+      }
+      .legend strong {
+        display: block;
+        font-weight: 600;
+        color: var(--fg-strong);
+        letter-spacing: -0.01em;
+      }
+      .legend span {
+        color: var(--muted);
+        font-size: 0.9375rem;
+      }
+
+      /* --- преимущества ------------------------------------------------ */
+      .cards {
+        display: grid;
+        gap: 1rem;
+      }
+      @media (min-width: 820px) {
+        .cards {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: clamp(1.5rem, 2.4vw, 2.1rem);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .card__icon {
+        display: grid;
+        place-items: center;
+        width: 2.6rem;
+        height: 2.6rem;
+        border-radius: 0.7rem;
+        background: rgba(151, 71, 255, 0.14);
+        border: 1px solid rgba(151, 71, 255, 0.28);
+        color: var(--violet-soft);
+        margin-bottom: 0.35rem;
+      }
+      .card__icon svg {
+        width: 1.35rem;
+        height: 1.35rem;
+      }
+      .card p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      /* --- как пользоваться -------------------------------------------- */
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: step;
+      }
+      .steps li {
+        counter-increment: step;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1rem 1.5rem;
+        padding: 1.5rem 0;
+        border-top: 1px solid var(--line);
+      }
+      .steps li:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+      .steps li::before {
+        content: counter(step, decimal-leading-zero);
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        color: var(--violet-soft);
+        padding-top: 0.25rem;
+      }
+      .steps strong {
+        display: block;
+        font-size: 1.1rem;
+        font-weight: 650;
+        color: var(--fg-strong);
+        letter-spacing: -0.01em;
+      }
+      .steps span {
+        color: var(--muted);
+      }
+
+      .quickstart {
+        margin-top: 2rem;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: 1.1rem 1.25rem;
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        color: var(--fg);
+        overflow-x: auto;
+        white-space: pre;
+      }
+      .quickstart .c {
+        color: var(--dim);
+      }
+
+      /* --- вопросы и поддержка ---------------------------------------- */
+      .split {
+        display: grid;
+        gap: 2.5rem;
+      }
+      @media (min-width: 1000px) {
+        .split {
+          grid-template-columns: 1.15fr 0.85fr;
+          align-items: start;
+        }
+      }
+      .faq {
+        border-top: 1px solid var(--line);
+      }
+      .faq details {
+        border-bottom: 1px solid var(--line);
+      }
+      .faq summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.15rem 0;
+        font-size: 1.05rem;
+        font-weight: 550;
+        color: var(--fg-strong);
+        letter-spacing: -0.01em;
+      }
+      .faq summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq summary .plus {
+        position: relative;
+        flex: none;
+        width: 1rem;
+        height: 1rem;
+        color: var(--violet-soft);
+      }
+      .faq summary .plus::before,
+      .faq summary .plus::after {
+        content: "";
+        position: absolute;
+        inset: 50% 0 auto 0;
+        height: 1.5px;
+        background: currentColor;
+        transition: transform 0.2s ease;
+      }
+      .faq summary .plus::after {
+        transform: rotate(90deg);
+      }
+      .faq details[open] summary .plus::after {
+        transform: rotate(0deg);
+      }
+      .faq p {
+        margin: 0 0 1.25rem;
+        padding-right: 2rem;
+        color: var(--muted);
+      }
+
+      .support {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: clamp(1.5rem, 2.4vw, 2.1rem);
+      }
+      .support h3 {
+        margin-bottom: 0.5rem;
+      }
+      .support > p {
+        color: var(--muted);
+        margin: 0 0 1rem;
+      }
+      .support ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .support li + li {
+        border-top: 1px solid var(--line);
+      }
+      .support a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.85rem 0;
+        text-decoration: none;
+        font-weight: 550;
+        color: var(--fg);
+      }
+      .support a:hover {
+        color: var(--violet-soft);
+      }
+      .support a small {
+        display: block;
+        font-weight: 400;
+        color: var(--dim);
+      }
+      .support a svg {
+        flex: none;
+        color: var(--violet-soft);
+      }
+
+      /* --- подвал ------------------------------------------------------ */
+      .site-footer {
+        background: #010409;
+        border-top: 1px solid var(--line);
+        padding-block: clamp(3rem, 6vw, 4.5rem);
+      }
+      .site-footer__grid {
+        display: grid;
+        gap: 2.5rem;
+      }
+      @media (min-width: 860px) {
+        .site-footer__grid {
+          grid-template-columns: 1.6fr 1fr 1fr;
+        }
+      }
+      .site-footer .brand {
+        margin-bottom: 1rem;
+      }
+      .site-footer p {
+        color: var(--dim);
+        max-width: 40ch;
+        font-size: 0.9375rem;
+      }
+      .site-footer h4 {
+        margin: 0 0 1rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+        font-weight: 600;
+      }
+      .site-footer ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.7rem;
+      }
+      .site-footer a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.9375rem;
+      }
+      .site-footer a:hover {
+        color: var(--fg-strong);
+      }
+      .site-footer__base {
+        margin-top: 3rem;
+        padding-top: 1.75rem;
+        border-top: 1px solid var(--line);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+        justify-content: space-between;
+        font-size: 0.8125rem;
+        color: var(--dim);
+      }
+
+      @media (max-width: 760px) {
+        :root {
+          --pad: 1.25rem;
+        }
+        .nav {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Перейти к содержимому</a>
+
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-download" viewBox="0 0 24 24">
+        <path
+          d="M12 3v11m0 0l-4.2-4.2M12 14l4.2-4.2M5 20h14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-code" viewBox="0 0 24 24">
+        <path
+          d="M9 8l-4 4 4 4m6-8l4 4-4 4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-offline" viewBox="0 0 24 24">
+        <path
+          d="M4 4l16 16M12 5a9 9 0 016.9 3.1M5 8.2A9 9 0 003 12m12.9 3.5A5 5 0 017 12c0-.6.1-1.1.3-1.6M12 19h.01"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-link" viewBox="0 0 24 24">
+        <path
+          d="M9.5 14.5l5-5M8.5 8.5L10 7a4 4 0 016 6l-1.5 1.5M15.5 15.5L14 17a4 4 0 01-6-6l1.5-1.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24">
+        <path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="currentColor" />
+      </symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path
+          d="M5 12h14m0 0l-5-5m5 5l-5 5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+    </svg>
+
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="brand" href="#top" aria-label="mini-figma — наверх">
+          <svg viewBox="0 0 32 32" role="img" aria-hidden="true">
+            <rect x="7" y="7" width="18" height="18" rx="4" fill="#9747FF" />
+            <rect x="4" y="4" width="24" height="24" rx="3" fill="none" stroke="#0D99FF" stroke-width="1.5" />
+            <circle cx="4" cy="4" r="2" fill="#fff" />
+            <circle cx="28" cy="4" r="2" fill="#fff" />
+            <circle cx="4" cy="28" r="2" fill="#fff" />
+            <circle cx="28" cy="28" r="2" fill="#fff" />
+          </svg>
+          <span>mini<span class="brand__accent">-figma</span></span>
+        </a>
+        <nav class="nav" aria-label="Разделы страницы">
+          <a href="#inside">Что внутри</a>
+          <a href="#benefits">Преимущества</a>
+          <a href="#how">Как пользоваться</a>
+          <a href="#faq">Вопросы</a>
+        </nav>
+        <a class="btn btn--primary" href="#download">
+          <svg aria-hidden="true"><use href="#i-download" /></svg>
+          Скачать бесплатно
+        </a>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ======================= ГЕРОЙ ======================= -->
+      <section class="hero container" id="top" data-section="hero">
+        <div class="hero__top">
+          <div>
+            <p class="eyebrow">Без аккаунта · Без интернета · Нужен только Node.js</p>
+            <h1>Редактор фигур, который работает без интернета</h1>
+          </div>
+          <div>
+            <p class="lead">
+              Холст с сеткой, фигуры, слои и свойства — всё в браузере. Скачайте
+              сборку на 57 КБ, распакуйте и запустите: без аккаунта и без сети.
+              Нужен только Node.js 18+.
+            </p>
+          </div>
+        </div>
+
+        <div class="hero__actions" id="download">
+          <a class="btn btn--primary btn--lg" href="mini-figma-portable.zip" download>
+            <svg aria-hidden="true"><use href="#i-download" /></svg>
+            Скачать бесплатно
+          </a>
+          <a class="btn btn--outline btn--lg" href="https://github.com/anchik227/anya">
+            <svg aria-hidden="true"><use href="#i-code" /></svg>
+            Открытый исходный код
+          </a>
+        </div>
+        <p class="hero__note">
+          Один архив для Windows, macOS и Linux — 57 КБ. В Windows — двойной
+          клик по <span class="mono">start.cmd</span>, в macOS и Linux —
+          <span class="mono">./start.sh</span> в терминале. Нужен только
+          Node.js 18+.
+        </p>
+
+        <figure class="hero__figure">
+          <div class="shot">
+            <div class="shot__bar" aria-hidden="true">
+              <span class="dot" style="--c: #ff5f57"></span>
+              <span class="dot" style="--c: #febc2e"></span>
+              <span class="dot" style="--c: #28c840"></span>
+              <span class="shot__title">mini-figma — localhost</span>
+            </div>
+            <img
+              src="preview.png"
+              width="2880"
+              height="1800"
+              alt="Интерфейс mini-figma: слева панель инструментов, по центру холст с сеткой и двумя фигурами — прямоугольником и эллипсом, справа панели «Layers» и «Properties»."
+            />
+          </div>
+          <figcaption>
+            Настоящий интерфейс mini-figma: снимок сделан в браузере — без
+            макетов и заглушек.
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ======================= ЧТО ВНУТРИ ======================= -->
+      <section class="section" id="inside" data-section="inside">
+        <div class="container">
+          <div class="section__head">
+            <p class="eyebrow">Что внутри</p>
+            <h2>Что именно на экране</h2>
+            <p class="lead">
+              mini-figma — рабочий редактор фигур, а не картинка. Внутри
+              модель фигур, камера с зумом и панорамой и панели, которые меняют
+              холст в реальном времени. Ниже — тот же экран с подписями по
+              областям.
+            </p>
+          </div>
+
+          <div class="inside">
+            <figure>
+              <div class="shot">
+                <span class="pin" style="left: 1.7%; top: 55%">1</span>
+                <span class="pin" style="left: 42%; top: 66%">2</span>
+                <span class="pin" style="left: 91.5%; top: 14%">3</span>
+                <span class="pin" style="left: 91.5%; top: 90%">4</span>
+                <span class="pin" style="left: 27%; top: 27%">5</span>
+                <span class="pin" style="left: 1.7%; top: 89%">6</span>
+                <img
+                  src="preview.png"
+                  width="2880"
+                  height="1800"
+                  alt="Тот же интерфейс mini-figma с пронумерованными областями: инструменты слева, холст в центре, слои и свойства справа."
+                />
+              </div>
+              <figcaption>Области интерфейса: 1 — инструменты, 2 — холст, 3 — слои, 4 — свойства, 5 — выделенная фигура, 6 — горячие клавиши.</figcaption>
+            </figure>
+
+            <ul class="legend">
+              <li>
+                <b>1</b>
+                <div>
+                  <strong>Панель инструментов</strong>
+                  <span>Выбор (V), прямоугольник (R), эллипс (O). Активный инструмент всегда подсвечен.</span>
+                </div>
+              </li>
+              <li>
+                <b>2</b>
+                <div>
+                  <strong>Холст с сеткой</strong>
+                  <span>Полотно с сеткой: зум колесом 10–400% вокруг курсора и панорама пробелом.</span>
+                </div>
+              </li>
+              <li>
+                <b>3</b>
+                <div>
+                  <strong>Панель слоёв</strong>
+                  <span>Список фигур. Клик по слою выделяет фигуру на холсте — и наоборот.</span>
+                </div>
+              </li>
+              <li>
+                <b>4</b>
+                <div>
+                  <strong>Панель свойств</strong>
+                  <span>Заливка, обводка и её толщина. Правка сразу применяется ко всем выделенным.</span>
+                </div>
+              </li>
+              <li>
+                <b>5</b>
+                <div>
+                  <strong>Фигуры и выделение</strong>
+                  <span>Рисование рамкой, перетаскивание, множественное выделение с Shift.</span>
+                </div>
+              </li>
+              <li>
+                <b>6</b>
+                <div>
+                  <strong>Горячие клавиши</strong>
+                  <span>V / R / O переключают инструменты и не срабатывают при вводе в поля.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= ПРЕИМУЩЕСТВА ======================= -->
+      <section class="section band" id="benefits" data-section="benefits">
+        <div class="container">
+          <div class="section__head">
+            <p class="eyebrow">Преимущества</p>
+            <h2>Работает там, где нет сети</h2>
+            <p class="lead">
+              Ни регистрации, ни интернета. Открыли — и рисуете. Три причины,
+              по которым это удобно.
+            </p>
+          </div>
+
+          <div class="cards">
+            <article class="card" data-benefit="offline">
+              <span class="card__icon"><svg aria-hidden="true"><use href="#i-offline" /></svg></span>
+              <h3>Работает без интернета</h3>
+              <p>
+                В самолёте, в поезде, в офисе без Wi-Fi: у редактора нет
+                серверной части и ни одного запроса в сеть. Отключите интернет —
+                он продолжит работать.
+              </p>
+            </article>
+            <article class="card" data-benefit="browser">
+              <span class="card__icon"><svg aria-hidden="true"><use href="#i-link" /></svg></span>
+              <h3>Открывается по ссылке в браузере</h3>
+              <p>
+                Запуск поднимает локальный адрес вида
+                <span class="mono">http://127.0.0.1:…</span> — редактор
+                открывается в браузере. Никакой установки приложения и никакого
+                аккаунта.
+              </p>
+            </article>
+            <article class="card" data-benefit="speed">
+              <span class="card__icon"><svg aria-hidden="true"><use href="#i-bolt" /></svg></span>
+              <h3>57 КБ и запуск за секунды</h3>
+              <p>
+                Архив весит 57 КБ и стартует за секунды. Горячие клавиши
+                V / R / O, зум колесом и панорама пробелом — всё под рукой.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= КАК ПОЛЬЗОВАТЬСЯ ======================= -->
+      <section class="section" id="how" data-section="how">
+        <div class="container">
+          <div class="section__head">
+            <p class="eyebrow">Как пользоваться</p>
+            <h2>От скачивания до первого макета</h2>
+            <p class="lead">Четыре шага — меньше минуты.</p>
+          </div>
+
+          <ol class="steps">
+            <li>
+              <div>
+                <strong>Скачайте архив</strong>
+                <span>Кнопка выше отдаёт <span class="mono">mini-figma-portable.zip</span> — готовую сборку на 57 КБ.</span>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Распакуйте в любую папку</strong>
+                <span>Архив переносимый: приложение и скрипт запуска лежат рядом. Ничего доустанавливать не нужно.</span>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Запустите</strong>
+                <span>Двойной клик по <span class="mono">start.cmd</span> в Windows или <span class="mono">./start.sh</span> в macOS и Linux. Нужен только Node.js 18+.</span>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Рисуйте</strong>
+                <span>Браузер откроет редактор автоматически. Создавайте фигуры, двигайте их, меняйте цвет и толщину обводки.</span>
+              </div>
+            </li>
+          </ol>
+
+          <div class="quickstart">
+            <span class="c"># или соберите из исходников за пару минут</span>
+git clone https://github.com/anchik227/anya
+cd anya
+npm install
+npm run dev
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= ВОПРОСЫ И ПОДДЕРЖКА ======================= -->
+      <section class="section" id="faq" data-section="faq">
+        <div class="container">
+          <div class="section__head">
+            <p class="eyebrow">Вопросы и поддержка</p>
+            <h2>Частые вопросы</h2>
+            <p class="lead">Коротко о том, что обычно спрашивают перед запуском.</p>
+          </div>
+
+          <div class="split">
+            <div class="faq">
+              <details open>
+                <summary>Это правда бесплатно? <span class="plus" aria-hidden="true"></span></summary>
+                <p>Да. mini-figma бесплатный, а исходный код открыт на GitHub. Ни оплаты, ни аккаунта, ни скрытых ограничений.</p>
+              </details>
+              <details>
+                <summary>Нужно ли что-то устанавливать? <span class="plus" aria-hidden="true"></span></summary>
+                <p>Само приложение — нет: распаковали и запустили. Единственное требование — Node.js 18+ для стартового скрипта.</p>
+              </details>
+              <details>
+                <summary>Мои данные куда-то уходят? <span class="plus" aria-hidden="true"></span></summary>
+                <p>Нет. У приложения нет серверной части: оно не отправляет данные в сеть, всё считается и живёт в вашем браузере.</p>
+              </details>
+              <details>
+                <summary>Почему не открывается двойным кликом по index.html? <span class="plus" aria-hidden="true"></span></summary>
+                <p>Приложение собрано на ES-модулях, а браузеры блокируют их загрузку из файла (<span class="mono">file://</span>). Скрипт запуска поднимает крошечный локальный сервер на <span class="mono">127.0.0.1</span> и открывает редактор. Интернет для этого не нужен.</p>
+              </details>
+              <details>
+                <summary>Что вообще умеет редактор? <span class="plus" aria-hidden="true"></span></summary>
+                <p>Холст с сеткой, зум 10–400% и панорама; прямоугольники и эллипсы; выделение, перетаскивание и множественное выделение; панель слоёв; заливка, обводка и её толщина.</p>
+              </details>
+              <details>
+                <summary>Работа сохраняется? <span class="plus" aria-hidden="true"></span></summary>
+                <p>Пока нет: фигуры живут в памяти вкладки, и после перезагрузки страницы работа не восстанавливается. Сохранение — в планах, об этом честно сказано и в README.</p>
+              </details>
+              <details>
+                <summary>Насколько это похоже на Figma? <span class="plus" aria-hidden="true"></span></summary>
+                <p>Это учебный мини-клон: знакомые идеи — холст, слои, свойства, выделение — в лёгком исполнении на React 18, TypeScript, Tailwind CSS 4 и Vite 6. Проект не связан с Figma, Inc.</p>
+              </details>
+            </div>
+
+            <aside class="support" aria-label="Поддержка">
+              <h3>Остались вопросы?</h3>
+              <p>Исходный код открыт: самый быстрый способ получить ответ — написать в репозитории на GitHub.</p>
+              <ul>
+                <li>
+                  <a href="https://github.com/anchik227/anya">
+                    <span>Репозиторий<small>Исходники, история, релизы</small></span>
+                    <svg width="20" height="20" aria-hidden="true"><use href="#i-arrow" /></svg>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/anchik227/anya/issues">
+                    <span>Сообщить об ошибке<small>Issues: баги и предложения</small></span>
+                    <svg width="20" height="20" aria-hidden="true"><use href="#i-arrow" /></svg>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/anchik227/anya#readme">
+                    <span>Инструкция в README<small>Команды, архитектура, что работает</small></span>
+                    <svg width="20" height="20" aria-hidden="true"><use href="#i-arrow" /></svg>
+                  </a>
+                </li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" data-section="footer">
+      <div class="container">
+        <div class="site-footer__grid">
+          <div>
+            <a class="brand" href="#top" aria-label="mini-figma">
+              <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+                <rect x="7" y="7" width="18" height="18" rx="4" fill="#9747FF" />
+                <rect x="4" y="4" width="24" height="24" rx="3" fill="none" stroke="#0D99FF" stroke-width="1.5" />
+              </svg>
+              <span>mini<span class="brand__accent">-figma</span></span>
+            </a>
+            <p>Лёгкий редактор фигур на React, TypeScript, Tailwind CSS и Vite. Бесплатный, с открытым исходным кодом. Учебный проект.</p>
+          </div>
+          <div>
+            <h4>Скачать</h4>
+            <ul>
+              <li><a href="mini-figma-portable.zip" download>Готовая сборка (.zip)</a></li>
+              <li><a href="https://github.com/anchik227/anya">Исходный код</a></li>
+              <li><a href="https://github.com/anchik227/anya/archive/refs/heads/main.zip">Архив репозитория</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Разделы</h4>
+            <ul>
+              <li><a href="#inside">Что внутри</a></li>
+              <li><a href="#benefits">Преимущества</a></li>
+              <li><a href="#how">Как пользоваться</a></li>
+              <li><a href="#faq">Вопросы и поддержка</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="site-footer__base">
+          <span>© mini-figma. Учебный проект, не связан с Figma, Inc.</span>
+          <span>Собрано на React 18 · TypeScript · Tailwind 4 · Vite 6</span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
