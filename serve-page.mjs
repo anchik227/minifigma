@@ -67,7 +67,7 @@ server.on('error', (err) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   const { port } = server.address();
-  const url = `http://127.0.0.1:${port}/`;
+  const url = `http://localhost:${port}/`;
   console.log('Страница скачивания запущена: ' + url);
   console.log('Чтобы остановить — закройте это окно (Ctrl+C).');
   openBrowser(url);
