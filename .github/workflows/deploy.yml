@@ -33,6 +33,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Add download page
+        run: |
+          mkdir -p dist/desktop-download
+          cp -r desktop-download/. dist/desktop-download/
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
